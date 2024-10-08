@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KBC Game - Player</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #answer-form { margin-top: 20px; }
+        #result { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>KBC Game - Player</h1>
+    <div id="player-name-form">
+        <input type="text" id="player-name" placeholder="Enter your name">
+        <button onclick="joinGame()">Join Game</button>
+    </div>
+    <div id="game-area" style="display: none;">
+        <div id="question"></div>
+        <div id="answer-form">
+            <input type="text" id="answer" placeholder="Your answer">
+            <button onclick="submitAnswer()">Submit</button>
+        </div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const playerNameForm = document.getElementById('player-name-form');
+        const gameArea = document.getElementById('game-area');
+        const questionEl = document.getElementById('question');
+        const answerEl = document.getElementById('answer');
+        const resultEl = document.getElementById('result');
+        let socket;
+
+        function joinGame() {
+            const playerName = document.getElementById('player-name').value;
+            if (playerName) {
+                playerNameForm.style.display = 'none';
+                gameArea.style.display = 'block';
+                
+                socket = new WebSocket('ws://localhost:8002/ws');
+
+                socket.onopen = function() {
+                    socket.send(JSON.stringify({ type: 'join', name: playerName }));
+                };
+
+                socket.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'question' || data.type === 'new_question') {
+                        questionEl.textContent = data.question;
+                        answerEl.value = '';
+                        resultEl.textContent = '';
+                    } else if (data.type === 'wrong_answer') {
+                        resultEl.textContent = 'Sorry, that answer is incorrect.';
+                    } else if (data.type === 'correct_answer') {
+                        resultEl.textContent = 'Correct! Wait for the next question.';
+                        answerEl.value = '';
+                    }
+                };
+            }
+        }
+
+        function submitAnswer() {
+            const answer = answerEl.value;
+            if (answer) {
+                socket.send(JSON.stringify({ type: 'answer', answer: answer }));
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KBC Game - Host</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #qrcode { width: 256px; height: 256px; margin: 20px auto; }
+        #result { font-size: 24px; font-weight: bold; color: green; }
+    </style>
+</head>
+<body>
+    <h1>KBC Game - Host</h1>
+    <div id="question"></div>
+    <div id="qrcode"></div>
+    <div id="result"></div>
+
+    <script>
+        const questionEl = document.getElementById('question');
+        const qrcodeEl = document.getElementById('qrcode');
+        const resultEl = document.getElementById('result');
+
+        // Fetch initial question and QR code
+        fetch('/')
+            .then(response => response.json())
+            .then(data => {
+                questionEl.textContent = data.question;
+                qrcodeEl.innerHTML = `<img src="data:image/png;base64,${data.qr_code}" alt="QR Code">`;
+            });
+
+        // Set up WebSocket connection
+        const socket = new WebSocket('ws://localhost:8002/ws');
+
+        socket.onmessage = function(event) {
+            console.log('Received message:', event.data);
+            const data = JSON.parse(event.data);
+            if (data.type === 'correct_answer') {
+                resultEl.textContent = `Congratulations, ${data.player}!`;
+                questionEl.textContent = `Correct Answer: ${data.question}`;
+            } else if (data.type === 'new_question') {
+                questionEl.textContent = data.question;
+                qrcodeEl.innerHTML = `<img src="data:image/png;base64,${data.qr_code}" alt="QR Code">`;
+                resultEl.textContent = '';
+            }
+        };
+    </script>
+</body>
+</html>
